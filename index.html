@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<title>chASM</title>
+		<meta charset='UTF-8'>
+
+		<link rel='stylesheet' href='./src/index.css'>
+	</head>
+
+	<body>
+
+		<h1>chASM</h1>
+		<p>CHIP-8 Assembler in JavaScript</p>
+
+		<!-- FRONTEND -->
+		<div>
+			<!-- chasm input -->
+			<textarea id='chasm-input' class='codein' spellcheck='false'></textarea>
+			<br>
+
+			<!-- chasm output -->
+			<button id='chasm-compile' class='button'>ASSEMBLE</button>
+			<button id='chasm-hexdump' class='button'>HEXDUMP</button>
+			<br>
+
+			<!-- chasm debug -->
+			<pre id='chasm-hexout' class='codeout'>(hexdump)</pre>
+		</div>
+
+		<!-- BACKEND -->
+		<script src='./src/filesaver.js'></script>
+		<script src='./src/chasm.js'></script>
+		<script>
+			window.onload = function () {
+
+				function $ (id) {
+					return document.getElementById (id);
+				};
+
+				// Elements //
+				var html = {
+					input: $ ('chasm-input'),
+					compile: $ ('chasm-compile'),
+					hexdump: $ ('chasm-hexdump'),
+					hexout: $ ('chasm-hexout')
+				};
+
+				html.input.addEventListener('keydown', function(e) {
+				  if (e.key == 'Tab') {
+				    e.preventDefault();
+				    var start = this.selectionStart;
+				    var end = this.selectionEnd;
+
+				    // set textarea value to: text before caret + tab + text after caret
+				    this.value = this.value.substring(0, start) +
+				      "\t" + this.value.substring(end);
+
+				    // put caret at right position again
+				    this.selectionStart =
+				      this.selectionEnd = start + 1;
+				  }
+				});
+
+				// Element Functions //
+				html.compile.onclick = function () {
+					var bin = _Assemble (html.input.value, html.hexout);
+
+					var blob = new Blob ([new Uint8Array (bin)], {type: 'application/octet-stream'});
+					saveAs (blob, 'src.bin');
+				};
+
+				html.hexdump.onclick = function () {
+					var bin = _Assemble (html.input.value, html.hexout);
+					html.hexout.innerHTML = 'HEXDUMP:\n' + _GetHexdump (bin);
+				};
+
+			};
+		</script>
+
+	</body>
+
+</html>

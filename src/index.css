@@ -1,0 +1,46 @@
+/* HTML */
+html, body {
+	margin: 0;
+	padding: 0;
+
+	text-align: center;
+
+	height: 100%;
+}
+
+* {
+	outline: none;
+}
+
+/* CODE */
+.codein {
+	padding: 8px;
+
+	display: inline-block;
+
+	min-width: 350px;
+	min-height: 30px;
+
+	max-width: 90%;
+
+	width: 600px;
+	height: 160px;
+
+	font-size: 14px;
+	tab-size: 2;
+
+	background: #dfeff2;
+	border: 1px solid #a7b5b2;
+}
+
+.codeout {
+	padding: 12px;
+
+	display: inline-block;
+
+	width: 350px;
+	min-height: 15px;
+
+	background: #dfeff2;
+	border: 1px solid #a7b5b2;
+}
