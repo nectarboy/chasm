@@ -1,3 +1,5 @@
+	.define size 4
+
 maze:
 # pick random maze piece
 	rnd 2 1
@@ -8,8 +10,8 @@ maze:
 	ldi r
 
 drawandadvance:
-	draw 0 1 4
-	add_xkk 0 4
+	draw 0 1 size
+	add_xkk 0 size
 # check if at the wall
 	sne_xkk 0 64
 	call resetxy
@@ -18,12 +20,21 @@ drawandadvance:
 
 pickleft:
 	ldi l
-	jmp draw
+	jmp drawandadvance
 
 resetxy:
 	ld_xkk 0 0
-	add_xkk 1 4
+	add_xkk 1 size
+	call checkatend
 	ret
+
+checkatend:
+	sne_xkk 1 32
+	jmp forever
+	ret
+
+forever:
+	jmp forever
 
 l:
 	.data 0b1000

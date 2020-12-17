@@ -34,8 +34,8 @@ const _Assemble = function _Assemble (asm, hexout) {
 	};
 
 	// Basic Functions //
-	function getArgsKeyword (currline, keyword) {
-		return (currline.slice (keyword.length + 1)).split (' ');
+	function getArgs (sentence) {
+		return (sentence.split (' ').slice (1));
 	}
 
 	function push8 (byte) {
@@ -63,12 +63,12 @@ const _Assemble = function _Assemble (asm, hexout) {
 
 	function getArgNum (arg) {
 		// Check if reffering to define
-		if (defines [arg])
+		if (defines [arg] !== undefined)
 			return defines [arg];
-		else if (labels [arg])
+		else if (labels [arg] !== undefined)
 			return labels [arg];
 
-		var prefix = arg [0] + arg [1];
+		var prefix = arg.slice (0, 2);
 		var num;
 
 		switch (prefix) {
@@ -89,7 +89,7 @@ const _Assemble = function _Assemble (asm, hexout) {
 		}
 
 		if (isNaN (num))
-			return throwError (getErrors.inv_val (arg));
+			return false;
 		else
 			return num;
 	}
@@ -98,7 +98,52 @@ const _Assemble = function _Assemble (asm, hexout) {
 		return /\s/g.test (s);
 	}
 
-	// Opcode Getter Function Thingies //
+	function isInvalidVal (n) {
+		return n === false;
+	}
+
+	// Keywords //
+	var keywords = {
+		'data': function (sentence) {
+			var args = getArgs (sentence);
+			if (!args [0])
+				return throwError (getErrors.expected_data ());
+
+			for (var i = 0; i < args.length; i ++) {
+				var num = getArgNum (args [i]);
+				if (isInvalidVal (num))
+					return throwError (getErrors.inv_val (args [i]));
+
+				if (num > 0xff)
+					push16 (num);
+				else
+					push8 (num);
+			}
+		},
+		'define': function (sentence) {
+			var args = getArgs (sentence);
+			var key = args [0];
+
+			if (!key)
+				return throwError (getErrors.expected_define_name ());
+			if (!isNaN (key [0]))
+				return throwError (getErrors.illegal_define (key));
+			if (!args [1])
+				return throwError (getErrors.expected_num ());
+			if (args.length > 2)
+				return throwError (getErrors.args_exceeded ());
+
+			var num = getArgNum (args [1]);
+			if (isInvalidVal (num))
+					return throwError (getErrors.inv_val (args [1]));
+
+			if (defines [key] || labels [key])
+				return throwError (getErrors.existing_keyword (key));
+			defines [key] = num;
+		}
+	};
+
+	// Instructions //
 	function getX (x) {
 		return (x & 0xf) << 8;
 	}
@@ -117,43 +162,6 @@ const _Assemble = function _Assemble (asm, hexout) {
 	function getKK (kk) {
 		return (kk & 0xff);
 	}
-
-	// Keywords //
-	var keywords = {
-		'data': function (currline) {
-			var args = getArgsKeyword (currline, 'data');
-			if (!args [0])
-				return throwError (getErrors.expected_data ());
-
-			for (var i = 0; i < args.length; i ++) {
-				var num = getArgNum (args [i]);
-
-				if (num > 0xff)
-					push16 (num);
-				else
-					push8 (num);
-			}
-		},
-		'define': function (currline) {
-			var args = getArgsKeyword (currline, 'define');
-			var key = args [0];
-
-			if (!key)
-				return throwError (getErrors.expected_define_name ());
-			if (!isNaN (key [0]))
-				return throwError (getErrors.illegal_define (key));
-			if (!args [1])
-				return throwError (getErrors.expected_num ());
-			if (args.length > 2)
-				return throwError (getErrors.args_exceeded ());
-
-			var num = getArgNum (args [1]);
-
-			if (defines [key])
-				return throwError (getErrors.existing_keyword (key));
-			defines [key] = num;
-		}
-	};
 
 	var ins = {
 		cls: () => 0x00e0,
@@ -205,102 +213,157 @@ const _Assemble = function _Assemble (asm, hexout) {
 		ld_xi: (x) => 0xf000 | getX (x) | getKK (0x65)
 	};
 
+	// Chars
+	var commentchar = '#';
+	var kwchar = '.';
+	var labelchar = ':';
+
 	// Interpret Source //
-	function interpretLine () {
-		var currline = asmlines [line].trimEnd ();
-		if (!currline || currline.trim ().startsWith ('#'))
-			return line += 1;
+	function checkForIgnore (sentence) {
+		return (!sentence || sentence.trim ().startsWith (commentchar));
+	}
 
-		if (hasWhiteSpace (currline [0])) {
+	function ResetPC () {
+		pc = 0x200;
+	}
 
-			currline = currline.trim ();
+	function getKeyword (sentence) {
+		kw = keywords [sentence.split (' ') [0]];
+		if (!kw)
+			return throwError (getErrors.undefined_keyword ());
+		return kw;
+	}
 
-			if (currline.startsWith ('.')) {
-				currline = currline.slice (1); // Discard '.'
+	function getOp (sentence) {
+		var op = ins [sentence.split (' ') [0]];
+		if (!op)
+			return throwError (getErrors.undefined_ins ());
+		return op;
+	}
 
-				var keyword = keywords [currline.split (' ') [0]] // Get keyword
-				if (!keyword)
-					return throwError (getErrors.undefined_keyword ());
-				if (keyword === keywords.data)
-					keyword (currline);
+	// Parsing Functions
+
+	function parseLabels () {
+		for (line = 0; line < asmlines.length; line ++) {
+
+			var currline = asmlines [line].trimEnd ();
+
+			if (checkForIgnore (currline))
+				continue;
+
+			// Whitespace present - check for data keyword
+			if (hasWhiteSpace (currline [0])) {
+				currline = currline.trim (); // Remove whitespace
+
+				// Keyword case
+				if (currline [0] === kwchar) {
+
+					currline = currline.slice (1); // Remove keyword start
+					var kw = getKeyword (currline);
+
+					if (kw === keywords.data) {
+						var args = getArgs (currline);
+						if (!args [0])
+							return throwError (getErrors.expected_data ());
+
+						for (var i = 0; i < args.length; i ++) {
+							var num = getArgNum (args [i]);
+							if (isInvalidVal (num))
+								continue;
+							pc += 1 + (num > 0xff);
+						}
+					}
+					else if (kw === keywords.define) {
+						kw (currline);
+					}
+
+				}
+				// Instruction case
+				else {
+					var op = getOp (currline);
+					/*var args = getArgs (currline);
+
+					var nums = [];
+					args.forEach (arg => {
+						var num = getArgNum (arg);
+						if (isInvalidVal (num))
+							continue; // Continue parsing scope - not argument scope
+						nums.push (num);
+					});*/
+
+					pc += 2;
+				}
+
 			}
+			// No whitespace present - check for label
+			else {
+				// Check for syntax errors
+				if (!currline.endsWith (labelchar) || currline.split (' ').length > 1)
+					return throwError (getErrors.syntax_error ());
+				pushLabel (currline.slice (0, -1));
+			}
+
+		}
+	}
+
+	function parseOps () {
+		for (line = 0; line < asmlines.length; line ++) {
+
+			var currline = asmlines [line].trimEnd ();
+
+			if (checkForIgnore (currline))
+				continue;
+			if (!hasWhiteSpace (currline [0]))
+				continue;
+
+			currline = currline.trim (); // Remove whitespace
+
+			// Case keywords
+			if (currline.startsWith (kwchar)) {
+
+				currline = currline.slice (1); // Remove keyword start
+				var kw = getKeyword (currline);
+
+				if (kw !== keywords.data)
+					continue;
+
+				kw (currline);
+
+			}
+			// Case instructions
 			else {
 
-				currline = currline.trim (); // Discard whitespace at beggining
+				var op = getOp (currline);
+				var args = getArgs (currline);
 
-				var args = currline.split (' ');
-				var op = ins [args [0]];
+				// Check if length errors
+				if (args.length > op.length)
+					return throwError (getErrors.args_exceeded ());
+				if (args.length < op.length)
+					return throwError (getErrors.expected_args ());
 
-				if (op) {
-					args.slice (1); // Remove prefix
+				var nums = [];
+				args.forEach (arg => {
+					var num = getArgNum (arg);
+					if (isInvalidVal (num))
+						return throwError (getErrors.inv_val (arg));
 
-					if (args.length - 1 > op.length)
-						return throwError (getErrors.args_exceeded ())
-					if (args.length - 1 < op.length)
-						return throwError (getErrors.expected_args ())
+					nums.push (num);
+				});
 
-					console.log (args);
-
-					var opcode = op (args);
-
-					console.log (opcode.toString (16));
-					push16 (opcode);
-				}
-				else {
-					return throwError (getErrors.undefined_ins ());
-				}
+				push16 (op (nums [0], nums [1], nums [2]));
 
 			}
 
 		}
-
-		line += 1;
 	}
 
-	function parseKeywords () {
-		var currline = asmlines [line].trimEnd ();
-		if (!currline || currline.trim ().startsWith ('#'))
-			return line += 1;
-
-		if (!hasWhiteSpace (currline [0])) {
-
-			// Push label
-			var label = currline.split (' ');
-			if (label.length > 1 || !label [0].endsWith (':'))
-				return throwError (getErrors.syntax_error ());
-
-			pushLabel (label [0].slice (0, -1));
-
-		}
-		else {
-
-			currline = currline.trim (); // Discard whitespace at beggining
-
-			// Check for keywords
-			if (currline.startsWith ('.')) {
-				currline = currline.slice (1); // Discard '.'
-
-				var keyword = keywords [currline.split (' ') [0]] // Get keyword
-				if (!keyword)
-					return throwError (getErrors.undefined_keyword ());
-				if (keyword === keywords.define)
-					keyword (currline);
-			}
-
-		}
-
-		line += 1;
-	}
-
-	for (var i = 0, l = asmlines.length; i < l; i ++) {
-		parseKeywords ();
-	}
-	line = 0;
-	for (var i = 0, l = asmlines.length; i < l; i ++) {
-		interpretLine ();
-	}
+	// Begin Parsing
+	parseLabels ();
+	parseOps ();
 
 	// Done ! //
+	console.log ('l:', labels, '\nd:', defines);
 	hexout.innerHTML = 'Done !';
 	return binary;
 
