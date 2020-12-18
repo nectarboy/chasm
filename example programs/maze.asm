@@ -37,12 +37,12 @@ forever:
 	jmp forever
 
 l:
-	.data 0b1000
-	.data 0b0100
-	.data 0b0010
-	.data 0b0001
+	.data 0b10000000
+	.data 0b01000000
+	.data 0b00100000
+	.data 0b00010000
 r:
-	.data 0b0001
-	.data 0b0010
-	.data 0b0100
-	.data 0b1000
+	.data 0b00010000
+	.data 0b00100000
+	.data 0b01000000
+	.data 0b10000000

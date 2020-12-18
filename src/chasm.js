@@ -228,14 +228,14 @@ const _Assemble = function _Assemble (asm, hexout) {
 	}
 
 	function getKeyword (sentence) {
-		kw = keywords [sentence.split (' ') [0]];
+		kw = keywords [sentence.toLowerCase ().split (' ') [0]];
 		if (!kw)
 			return throwError (getErrors.undefined_keyword ());
 		return kw;
 	}
 
 	function getOp (sentence) {
-		var op = ins [sentence.split (' ') [0]];
+		var op = ins [sentence.toLowerCase ().split (' ') [0]];
 		if (!op)
 			return throwError (getErrors.undefined_ins ());
 		return op;
