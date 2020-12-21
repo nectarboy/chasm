@@ -1,5 +1,5 @@
 # chASM
-*Chip-8 Assembly Language in JavaScript*
+***Chip-8 Assembly Language in JavaScript***
 
 # what is chASM ?
 chASM is a *simple toy assembly language* designed to quickly make games for the chip-8.
