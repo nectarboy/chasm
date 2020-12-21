@@ -63,7 +63,7 @@ r:
 	.data 0x10 0x20 0x40 0x80
 ```
 
-![a maze !](https://github.com/nectarboy/chasm/blob/doc/maze.png?raw=true)
+![a maze !](https://github.com/nectarboy/chasm/blob/main/doc/maze.png?raw=true)
 
 # conclusion
 well, thats all there is to chASM, have fun !
