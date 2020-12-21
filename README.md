@@ -17,7 +17,8 @@ chASM has a few simple features:
 chASM is not meant to be taken as a professional programming language;
 it is a toy language designed to swiftly make small programs.
 
-here is an example program that draws a random maze: ```
+here is an example program that draws a random maze:
+```
   .define size 4
   
 maze:
