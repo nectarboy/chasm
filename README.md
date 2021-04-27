@@ -19,48 +19,48 @@ it is a toy language designed to swiftly make small programs.
 
 here is an example program that draws a random maze:
 ```
-  .define size 4
+    .define size 4
   
 maze:
 # pick random maze piece
-	rnd 2 1
+    rnd 2 1
 # assign i to maze piece depending on v 2 (random number)
-	seq_xkk 2 1
-	jmp pickleft
-	ldi r
+    seq_xkk 2 1
+    jmp pickleft
+    ldi r
 
 drawandadvance:
-	draw 0 1 size
-	add_xkk 0 size
+    draw 0 1 size
+    add_xkk 0 size
 # check if at the wall
-	sne_xkk 0 64
-	call resetxy
+    sne_xkk 0 64
+    call resetxy
 # start again
-	jmp maze	
+    jmp maze    
 
 pickleft:
-	ldi l
-	jmp drawandadvance
+    ldi l
+    jmp drawandadvance
 
 resetxy:
-	ld_xkk 0 0
-	add_xkk 1 size
-	call checkatend
-	ret
+    ld_xkk 0 0
+    add_xkk 1 size
+    call checkatend
+    ret
 
 checkatend:
-	sne_xkk 1 32
-	jmp forever
-	ret
+    sne_xkk 1 32
+    jmp forever
+    ret
 
 forever:
-	jmp forever
+    jmp forever
   
 # maze sprites
 l:
-	.data 0x80 0x40 0x20 0x10
+    .data 0x80 0x40 0x20 0x10
 r:
-	.data 0x10 0x20 0x40 0x80
+    .data 0x10 0x20 0x40 0x80
 ```
 
 ![a maze !](https://github.com/nectarboy/chasm/blob/main/doc/maze.png?raw=true)
